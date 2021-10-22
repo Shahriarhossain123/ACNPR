@@ -5,6 +5,8 @@ app_name = 'car'
 urlpatterns = [
     # car
     path('', views.IndexClassView.as_view(), name='index'),
+    path('car_driver', views.Car_DriverClassView.as_view(), name='car_driver'),
+    path('report', views.ReportClassView.as_view(), name='report'),
     # car/id
     #path('<int:pk>/', views.FoodDetail.as_view(), name='detail'),
     # item

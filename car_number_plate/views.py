@@ -18,3 +18,31 @@ class IndexClassView(ListView):
     model = Car
     template_name = 'car/index.html'
     context_object_name = 'car_list'
+
+
+def car_driver(request):
+    driver_list = Driver.objects.all()
+    context = {
+        'driver_list': driver_list,
+    }
+    return render(request, 'car/car_driver.html', context)
+
+
+class Car_DriverClassView(ListView):
+    model = Driver
+    template_name = 'car/car_driver.html'
+    context_object_name = 'driver_list'
+
+
+def report(request):
+    driver_list = Driver.objects.all()
+    context = {
+        'driver_list': driver_list,
+    }
+    return render(request, 'car/report.html', context)
+
+
+class ReportClassView(ListView):
+    model = Driver
+    template_name = 'car/report.html'
+    context_object_name = 'driver_list'
