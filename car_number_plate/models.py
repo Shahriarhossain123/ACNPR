@@ -19,6 +19,7 @@ class Driver(models.Model):
     address = models.CharField("Address", max_length=300, null=True)
     car = models.ForeignKey(Car, on_delete=models.RESTRICT)
     photo = models.ImageField("Driver Photo", default='driverpic.png', upload_to='driver_pic', blank=True, null=True)
+    entry_time = models.DateTimeField("Entry Time", blank=True, null=True)
     modify_time = models.DateTimeField()
     data_entry_time = models.DateTimeField(auto_now_add=True)
 
