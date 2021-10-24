@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import math
@@ -6,7 +8,6 @@ import random
 import Ocr
 import Preprocess
 import PossibleChar
-
 
 kNearest = cv2.ml.KNearest_create()
 
@@ -35,6 +36,7 @@ RESIZED_CHAR_IMAGE_HEIGHT = 30
 
 MIN_CONTOUR_AREA = 100
 
+
 def loadKNNDataAndTrainKNN():
     allContoursWithData = []
     validContoursWithData = []
@@ -42,18 +44,16 @@ def loadKNNDataAndTrainKNN():
     try:
         npaClassifications = np.loadtxt("classifications.txt", np.float32)
     except:
-        print ("error, unable to open classifications.txt, exiting program\n")
+        print("error, unable to open classifications.txt, exiting program\n")
         os.system("pause")
         return False
-
 
     try:
         npaFlattenedImages = np.loadtxt("flattened_images.txt", np.float32)
     except:
-        print ("error, unable to open flattened_images.txt, exiting program\n")
+        print("error, unable to open flattened_images.txt, exiting program\n")
         os.system("pause")
         return False
-
 
     npaClassifications = npaClassifications.reshape((npaClassifications.size, 1))
 
@@ -72,26 +72,26 @@ def detectCharsInPlates(listOfPossiblePlates):
     if len(listOfPossiblePlates) == 0:
         return listOfPossiblePlates
 
-
     for possiblePlate in listOfPossiblePlates:
-        possiblePlate.imgGrayscale, possiblePlate.imgThresh = Preprocess.preprocess(possiblePlate.imgPlate)     # preprocess to get grayscale and threshold images
+        possiblePlate.imgGrayscale, possiblePlate.imgThresh = Preprocess.preprocess(
+            possiblePlate.imgPlate)  # preprocess to get grayscale and threshold images
 
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             cv2.imshow("5a", possiblePlate.imgPlate)
             cv2.imshow("5b", possiblePlate.imgGrayscale)
             cv2.imshow("5c", possiblePlate.imgThresh)
 
-        possiblePlate.imgThresh = cv2.resize(possiblePlate.imgThresh, (0, 0), fx = 1.6, fy = 1.6)
+        possiblePlate.imgThresh = cv2.resize(possiblePlate.imgThresh, (0, 0), fx=1.6, fy=1.6)
 
-        thresholdValue, possiblePlate.imgThresh = cv2.threshold(possiblePlate.imgThresh, 0.0, 255.0, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        thresholdValue, possiblePlate.imgThresh = cv2.threshold(possiblePlate.imgThresh, 0.0, 255.0,
+                                                                cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             cv2.imshow("5d", possiblePlate.imgThresh)
-
 
         listOfPossibleCharsInPlate = findPossibleCharsInPlate(possiblePlate.imgGrayscale, possiblePlate.imgThresh)
 
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             height, width, numChannels = possiblePlate.imgPlate.shape
             imgContours = np.zeros((height, width, 3), np.uint8)
             del contours[:]
@@ -99,14 +99,13 @@ def detectCharsInPlates(listOfPossiblePlates):
             for possibleChar in listOfPossibleCharsInPlate:
                 contours.append(possibleChar.contour)
 
-
-            cv2.drawContours(imgContours, contours, -1, Main.SCALAR_WHITE)
+            cv2.drawContours(imgContours, contours, -1, Ocr.SCALAR_WHITE)
 
             cv2.imshow("6", imgContours)
 
         listOfListsOfMatchingCharsInPlate = findListOfListsOfMatchingChars(listOfPossibleCharsInPlate)
 
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             imgContours = np.zeros((height, width, 3), np.uint8)
             del contours[:]
 
@@ -124,25 +123,23 @@ def detectCharsInPlates(listOfPossiblePlates):
 
         if (len(listOfListsOfMatchingCharsInPlate) == 0):
 
-            if Main.showSteps == True:
-                print ("chars found in plate number " + str(intPlateCounter) + " = (none), click on any image and press a key to continue . . .")
+            if Ocr.showSteps == True:
+                print("chars found in plate number " + str(
+                    intPlateCounter) + " = (none), click on any image and press a key to continue . . .")
                 intPlateCounter = intPlateCounter + 1
                 cv2.destroyWindow("8")
                 cv2.destroyWindow("9")
                 cv2.destroyWindow("10")
                 cv2.waitKey(0)
 
-
             possiblePlate.strChars = ""
             continue
 
-
         for i in range(0, len(listOfListsOfMatchingCharsInPlate)):
-            listOfListsOfMatchingCharsInPlate[i].sort(key = lambda matchingChar: matchingChar.intCenterX)
+            listOfListsOfMatchingCharsInPlate[i].sort(key=lambda matchingChar: matchingChar.intCenterX)
             listOfListsOfMatchingCharsInPlate[i] = removeInnerOverlappingChars(listOfListsOfMatchingCharsInPlate[i])
 
-
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             imgContours = np.zeros((height, width, 3), np.uint8)
 
             for listOfMatchingChars in listOfListsOfMatchingCharsInPlate:
@@ -155,49 +152,41 @@ def detectCharsInPlates(listOfPossiblePlates):
                 for matchingChar in listOfMatchingChars:
                     contours.append(matchingChar.contour)
 
-
                 cv2.drawContours(imgContours, contours, -1, (intRandomBlue, intRandomGreen, intRandomRed))
 
             cv2.imshow("8", imgContours)
 
-
-
         intLenOfLongestListOfChars = 0
         intIndexOfLongestListOfChars = 0
-
 
         for i in range(0, len(listOfListsOfMatchingCharsInPlate)):
             if len(listOfListsOfMatchingCharsInPlate[i]) > intLenOfLongestListOfChars:
                 intLenOfLongestListOfChars = len(listOfListsOfMatchingCharsInPlate[i])
                 intIndexOfLongestListOfChars = i
 
-
-
-
         longestListOfMatchingCharsInPlate = listOfListsOfMatchingCharsInPlate[intIndexOfLongestListOfChars]
 
-        if Main.showSteps == True:
+        if Ocr.showSteps == True:
             imgContours = np.zeros((height, width, 3), np.uint8)
             del contours[:]
 
             for matchingChar in longestListOfMatchingCharsInPlate:
                 contours.append(matchingChar.contour)
 
-
-            cv2.drawContours(imgContours, contours, -1, Main.SCALAR_WHITE)
+            cv2.drawContours(imgContours, contours, -1, Ocr.SCALAR_WHITE)
 
             cv2.imshow("9", imgContours)
 
-
         possiblePlate.strChars = recognizeCharsInPlate(possiblePlate.imgThresh, longestListOfMatchingCharsInPlate)
 
-        if Main.showSteps == True:
-            print ("chars found in plate number " + str(intPlateCounter) + " = " + possiblePlate.strChars + ", click on any image and press a key to continue . . .")
+        if Ocr.showSteps == True:
+            print("chars found in plate number " + str(
+                intPlateCounter) + " = " + possiblePlate.strChars + ", click on any image and press a key to continue . . .")
             intPlateCounter = intPlateCounter + 1
             cv2.waitKey(0)
 
-    if Main.showSteps == True:
-        print ("\nchar detection complete, click on any image and press a key to continue . . .\n")
+    if Ocr.showSteps == True:
+        print("\nchar detection complete, click on any image and press a key to continue . . .\n")
         cv2.waitKey(0)
 
     return listOfPossiblePlates
@@ -208,7 +197,6 @@ def findPossibleCharsInPlate(imgGrayscale, imgThresh):
     contours = []
     imgThreshCopy = imgThresh.copy()
 
-
     contours, npaHierarchy = cv2.findContours(imgThreshCopy, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     for contour in contours:
@@ -218,13 +206,16 @@ def findPossibleCharsInPlate(imgGrayscale, imgThresh):
             listOfPossibleChars.append(possibleChar)
 
     return listOfPossibleChars
+
+
 def checkIfPossibleChar(possibleChar):
     if (possibleChar.intBoundingRectArea > MIN_PIXEL_AREA and
-        possibleChar.intBoundingRectWidth > MIN_PIXEL_WIDTH and possibleChar.intBoundingRectHeight > MIN_PIXEL_HEIGHT and
-        MIN_ASPECT_RATIO < possibleChar.fltAspectRatio and possibleChar.fltAspectRatio < MAX_ASPECT_RATIO):
+            possibleChar.intBoundingRectWidth > MIN_PIXEL_WIDTH and possibleChar.intBoundingRectHeight > MIN_PIXEL_HEIGHT and
+            MIN_ASPECT_RATIO < possibleChar.fltAspectRatio and possibleChar.fltAspectRatio < MAX_ASPECT_RATIO):
         return True
     else:
         return False
+
 
 def findListOfListsOfMatchingChars(listOfPossibleChars):
     listOfListsOfMatchingChars = []
@@ -241,7 +232,8 @@ def findListOfListsOfMatchingChars(listOfPossibleChars):
         listOfPossibleCharsWithCurrentMatchesRemoved = []
         listOfPossibleCharsWithCurrentMatchesRemoved = list(set(listOfPossibleChars) - set(listOfMatchingChars))
 
-        recursiveListOfListsOfMatchingChars = findListOfListsOfMatchingChars(listOfPossibleCharsWithCurrentMatchesRemoved)
+        recursiveListOfListsOfMatchingChars = findListOfListsOfMatchingChars(
+            listOfPossibleCharsWithCurrentMatchesRemoved)
 
         for recursiveListOfMatchingChars in recursiveListOfListsOfMatchingChars:
             listOfListsOfMatchingChars.append(recursiveListOfMatchingChars)
@@ -249,35 +241,42 @@ def findListOfListsOfMatchingChars(listOfPossibleChars):
         break
     return listOfListsOfMatchingChars
 
+
 def findListOfMatchingChars(possibleChar, listOfChars):
     listOfMatchingChars = []
 
     for possibleMatchingChar in listOfChars:
         if possibleMatchingChar == possibleChar:
-
             continue
         fltDistanceBetweenChars = distanceBetweenChars(possibleChar, possibleMatchingChar)
 
         fltAngleBetweenChars = angleBetweenChars(possibleChar, possibleMatchingChar)
 
-        fltChangeInArea = float(abs(possibleMatchingChar.intBoundingRectArea - possibleChar.intBoundingRectArea)) / float(possibleChar.intBoundingRectArea)
+        fltChangeInArea = float(
+            abs(possibleMatchingChar.intBoundingRectArea - possibleChar.intBoundingRectArea)) / float(
+            possibleChar.intBoundingRectArea)
 
-        fltChangeInWidth = float(abs(possibleMatchingChar.intBoundingRectWidth - possibleChar.intBoundingRectWidth)) / float(possibleChar.intBoundingRectWidth)
-        fltChangeInHeight = float(abs(possibleMatchingChar.intBoundingRectHeight - possibleChar.intBoundingRectHeight)) / float(possibleChar.intBoundingRectHeight)
+        fltChangeInWidth = float(
+            abs(possibleMatchingChar.intBoundingRectWidth - possibleChar.intBoundingRectWidth)) / float(
+            possibleChar.intBoundingRectWidth)
+        fltChangeInHeight = float(
+            abs(possibleMatchingChar.intBoundingRectHeight - possibleChar.intBoundingRectHeight)) / float(
+            possibleChar.intBoundingRectHeight)
         if (fltDistanceBetweenChars < (possibleChar.fltDiagonalSize * MAX_DIAG_SIZE_MULTIPLE_AWAY) and
-            fltAngleBetweenChars < MAX_ANGLE_BETWEEN_CHARS and
-            fltChangeInArea < MAX_CHANGE_IN_AREA and
-            fltChangeInWidth < MAX_CHANGE_IN_WIDTH and
-            fltChangeInHeight < MAX_CHANGE_IN_HEIGHT):
-
+                fltAngleBetweenChars < MAX_ANGLE_BETWEEN_CHARS and
+                fltChangeInArea < MAX_CHANGE_IN_AREA and
+                fltChangeInWidth < MAX_CHANGE_IN_WIDTH and
+                fltChangeInHeight < MAX_CHANGE_IN_HEIGHT):
             listOfMatchingChars.append(possibleMatchingChar)
     return listOfMatchingChars
+
 
 def distanceBetweenChars(firstChar, secondChar):
     intX = abs(firstChar.intCenterX - secondChar.intCenterX)
     intY = abs(firstChar.intCenterY - secondChar.intCenterY)
 
     return math.sqrt((intX ** 2) + (intY ** 2))
+
 
 def angleBetweenChars(firstChar, secondChar):
     fltAdj = float(abs(firstChar.intCenterX - secondChar.intCenterX))
@@ -292,6 +291,7 @@ def angleBetweenChars(firstChar, secondChar):
 
     return fltAngleInDeg
 
+
 def removeInnerOverlappingChars(listOfMatchingChars):
     listOfMatchingCharsWithInnerCharRemoved = list(listOfMatchingChars)
 
@@ -299,7 +299,8 @@ def removeInnerOverlappingChars(listOfMatchingChars):
         for otherChar in listOfMatchingChars:
             if currentChar != otherChar:
 
-                if distanceBetweenChars(currentChar, otherChar) < (currentChar.fltDiagonalSize * MIN_DIAG_SIZE_MULTIPLE_AWAY):
+                if distanceBetweenChars(currentChar, otherChar) < (
+                        currentChar.fltDiagonalSize * MIN_DIAG_SIZE_MULTIPLE_AWAY):
 
                     if currentChar.intBoundingRectArea < otherChar.intBoundingRectArea:
                         if currentChar in listOfMatchingCharsWithInnerCharRemoved:
@@ -310,6 +311,7 @@ def removeInnerOverlappingChars(listOfMatchingChars):
                             listOfMatchingCharsWithInnerCharRemoved.remove(otherChar)
     return listOfMatchingCharsWithInnerCharRemoved
 
+
 def recognizeCharsInPlate(imgThresh, listOfMatchingChars):
     strChars = ""
 
@@ -317,17 +319,19 @@ def recognizeCharsInPlate(imgThresh, listOfMatchingChars):
 
     imgThreshColor = np.zeros((height, width, 3), np.uint8)
 
-    listOfMatchingChars.sort(key = lambda matchingChar: matchingChar.intCenterX)
+    listOfMatchingChars.sort(key=lambda matchingChar: matchingChar.intCenterX)
 
     cv2.cvtColor(imgThresh, cv2.COLOR_GRAY2BGR, imgThreshColor)
 
     for currentChar in listOfMatchingChars:
         pt1 = (currentChar.intBoundingRectX, currentChar.intBoundingRectY)
-        pt2 = ((currentChar.intBoundingRectX + currentChar.intBoundingRectWidth), (currentChar.intBoundingRectY + currentChar.intBoundingRectHeight))
+        pt2 = ((currentChar.intBoundingRectX + currentChar.intBoundingRectWidth),
+               (currentChar.intBoundingRectY + currentChar.intBoundingRectHeight))
 
-        cv2.rectangle(imgThreshColor, pt1, pt2, Main.SCALAR_GREEN, 2)
-        imgROI = imgThresh[currentChar.intBoundingRectY : currentChar.intBoundingRectY + currentChar.intBoundingRectHeight,
-                           currentChar.intBoundingRectX : currentChar.intBoundingRectX + currentChar.intBoundingRectWidth]
+        cv2.rectangle(imgThreshColor, pt1, pt2, Ocr.SCALAR_GREEN, 2)
+        imgROI = imgThresh[
+                 currentChar.intBoundingRectY: currentChar.intBoundingRectY + currentChar.intBoundingRectHeight,
+                 currentChar.intBoundingRectX: currentChar.intBoundingRectX + currentChar.intBoundingRectWidth]
 
         imgROIResized = cv2.resize(imgROI, (RESIZED_CHAR_IMAGE_WIDTH, RESIZED_CHAR_IMAGE_HEIGHT))
 
@@ -335,14 +339,12 @@ def recognizeCharsInPlate(imgThresh, listOfMatchingChars):
 
         npaROIResized = np.float32(npaROIResized)
 
-        retval, npaResults, neigh_resp, dists = kNearest.findNearest(npaROIResized, k = 1)
+        retval, npaResults, neigh_resp, dists = kNearest.findNearest(npaROIResized, k=1)
 
         strCurrentChar = str(chr(int(npaResults[0][0])))
 
         strChars = strChars + strCurrentChar
 
-
-
-    if Main.showSteps == True:
+    if Ocr.showSteps == True:
         cv2.imshow("10", imgThreshColor)
     return strChars
